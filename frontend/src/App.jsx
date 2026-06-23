@@ -203,6 +203,9 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Heavenly background glowing blobs */}
+      <div className="glow-orb glow-orb-1"></div>
+      <div className="glow-orb glow-orb-2"></div>
       {/* Sidebar: Sliders, Session details, and Admin Add Movie */}
       <SidebarSettings
         weightCol={weightCol}
