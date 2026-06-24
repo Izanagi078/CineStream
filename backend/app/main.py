@@ -52,20 +52,18 @@ app.add_middleware(
 )
 
 # ── Mount versioned routers (/api/v1/...) ─────────────────────────────────────
-app.include_router(auth_router)
-app.include_router(movies_router)
-app.include_router(recommendations_router)
-app.include_router(feed_router)
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(movies_router, prefix="/api/v1")
+app.include_router(recommendations_router, prefix="/api/v1")
+app.include_router(feed_router, prefix="/api/v1")
 
-# ── Backward-compatible /api/ aliases ─────────────────────────────────────────
-# Re-expose all v1 routes at /api/ so the existing frontend keeps working
-# without any URL changes. Each router's prefix is /api/v1/xxx; we strip
-# /v1 by re-mounting under a plain /api prefix.
-_compat = APIRouter(prefix="/api")
-for _route in [*auth_router.routes, *movies_router.routes,
-               *recommendations_router.routes, *feed_router.routes]:
-    _compat.routes.append(_route)
-app.include_router(_compat)
+# ── Backward-compatible legacy /api/ aliases ──────────────────────────────────
+# Expose same handlers under /api/... to prevent breaking existing clients.
+app.include_router(auth_router, prefix="/api")
+app.include_router(movies_router, prefix="/api")
+app.include_router(recommendations_router, prefix="/api")
+app.include_router(feed_router, prefix="/api")
+
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
 
@@ -73,6 +71,8 @@ MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 # ── Startup: load models and sync database ────────────────────────────────────
 @app.on_event("startup")
 def startup_event():
+    if os.environ.get("TESTING") == "True":
+        return
     Base.metadata.create_all(bind=engine)
 
     col_path = os.path.join(MODELS_DIR, "collaborative_model.pkl")

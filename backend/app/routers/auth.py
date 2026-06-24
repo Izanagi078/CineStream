@@ -7,7 +7,7 @@ from backend.app.models_db import DBUser
 from backend.app.schemas import UserAuth, TokenResponse
 from backend.app.dependencies import hash_password, verify_password, generate_token, limiter
 
-router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=TokenResponse)

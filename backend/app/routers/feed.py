@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.models_db import DBRating, DBMovie
 
-router = APIRouter(prefix="/api/v1", tags=["Feed"])
+router = APIRouter(prefix="", tags=["Feed"])
 
 
 @router.get("/stats")

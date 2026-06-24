@@ -9,7 +9,7 @@ from backend.app.models_db import DBMovie
 from backend.app.schemas import MovieCreate
 from backend.app.dependencies import get_current_user_optional
 
-router = APIRouter(prefix="/api/v1/movies", tags=["Movies"])
+router = APIRouter(prefix="/movies", tags=["Movies"])
 
 
 @router.get("/popular")

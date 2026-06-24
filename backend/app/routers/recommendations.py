@@ -12,7 +12,7 @@ from backend.app.models_db import DBRating
 from backend.app.schemas import OnboardingRequest, RatingCreate
 from backend.app.dependencies import get_current_user_optional
 
-router = APIRouter(prefix="/api/v1", tags=["Recommendations"])
+router = APIRouter(prefix="", tags=["Recommendations"])
 
 
 @router.post("/onboarding")
