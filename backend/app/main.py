@@ -131,6 +131,7 @@ def startup_event():
             "genres": m.genres,
             "metadata_text": m.metadata_text,
             "tmdbId": m.tmdbId,
+            "poster_path": m.poster_path,
             "is_active": m.is_active,
         } for m in all_movies])
 

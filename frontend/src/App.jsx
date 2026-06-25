@@ -43,6 +43,11 @@ export default function App() {
     if (userId) fetchRecommendations();
   }, [userId, weightCol, novelty, diversity]);
 
+  // 2b. Load user ratings history when session starts or changes
+  useEffect(() => {
+    if (userId) loadUserRatings(userId);
+  }, [userId]);
+
   // 3. Debounced search
   useEffect(() => {
     const timer = setTimeout(() => handleSearch(searchQuery), 300);

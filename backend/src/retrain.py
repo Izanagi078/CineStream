@@ -57,12 +57,18 @@ def retrain_model_pipeline(app=None):
 
     # 3. Merge custom/active movies from database
     if db_movies:
+        # Ensure base movies has poster_path column for concatenation
+        if "poster_path" not in movies.columns:
+            movies = movies.copy()
+            movies["poster_path"] = None
+
         db_movies_df = pd.DataFrame([{
             "movieId": int(m.movieId),
             "title": str(m.title),
             "genres": str(m.genres),
             "metadata_text": str(m.metadata_text or f"{m.title} {m.genres.replace('|', ' ')}"),
             "tmdbId": m.tmdbId,
+            "poster_path": m.poster_path,
             "is_active": m.is_active,
         } for m in db_movies])
         
@@ -72,6 +78,8 @@ def retrain_model_pipeline(app=None):
         combined_movies = pd.concat([base_filtered, db_movies_df], ignore_index=True)
     else:
         combined_movies = movies.copy()
+        if "poster_path" not in combined_movies.columns:
+            combined_movies["poster_path"] = None
 
     # Filter out archived movies from training catalog
     training_movies = combined_movies[combined_movies["is_active"] == True].copy()

@@ -142,18 +142,11 @@ class CollaborativeModel:
         self.Q = np.vstack([self.Q, new_vec])
         return new_idx
 
-    def update_rating_online(self, user_id, movie_id: int, rating: float, lr_p=0.1, lr_q=0.005, reg=0.02):
+    def update_rating_online(self, user_id, movie_id: int, rating: float, lr_p=0.1, lr_q=0.005, reg=0.02, epochs=5):
         """
-        Performs a single, real-time Stochastic Gradient Descent (SGD) update step
+        Performs real-time Stochastic Gradient Descent (SGD) update steps
         to adjust the latent User vector (P_u) and movie vector (Q_i) in-memory.
-        
-        This enables sub-millisecond, online updates to recommendation profiles
-        without requiring full batch SVD refitting.
-        
-        Math formulation:
-          Error: e = r - (mean_u + P_u . Q_i^T)
-          Update user vector: P_u <- P_u + lr_p * (e * Q_i - reg * P_u)
-          Update movie vector: Q_i <- Q_i + lr_q * (e * P_u - reg * Q_i)
+        Runs for multiple epochs to accelerate convergence for dynamic profiling.
         """
         u_idx = self.register_new_user(user_id)
         m_idx = self.register_new_movie(movie_id)
@@ -163,22 +156,21 @@ class CollaborativeModel:
         if user_key not in self.user_means:
             self.user_means[user_key] = float(self.global_mean)
             
-        # 2. Compute prediction error: error = target - predicted
-        # Incorporate latent factors dot product ensembled with the user's rating mean bias
-        pred_centered = np.dot(self.P[u_idx], self.Q[m_idx])
-        pred_rating = pred_centered + self.user_means[user_key]
-        error = rating - pred_rating
-        
-        # 3. Incrementally adjust user rating bias/mean with error correction
-        self.user_means[user_key] = float(np.clip(self.user_means[user_key] + 0.1 * error, 0.5, 5.0))
-        
-        # 4. Perform SVD Latent Vector adjustments using SGD equations
-        # Copy vectors first to ensure updates to P don't affect Q update math in the same step
-        p_temp = self.P[u_idx].copy()
-        q_temp = self.Q[m_idx].copy()
-        
-        self.P[u_idx] += lr_p * (error * q_temp - reg * p_temp)
-        self.Q[m_idx] += lr_q * (error * p_temp - reg * q_temp)
+        # 2. Run multiple update epochs to boost responsiveness
+        for _ in range(epochs):
+            pred_centered = np.dot(self.P[u_idx], self.Q[m_idx])
+            pred_rating = pred_centered + self.user_means[user_key]
+            error = rating - pred_rating
+            
+            # Incrementally adjust user rating bias/mean with error correction
+            self.user_means[user_key] = float(np.clip(self.user_means[user_key] + 0.1 * error, 0.5, 5.0))
+            
+            # Perform SVD Latent Vector adjustments using SGD equations
+            p_temp = self.P[u_idx].copy()
+            q_temp = self.Q[m_idx].copy()
+            
+            self.P[u_idx] += lr_p * (error * q_temp - reg * p_temp)
+            self.Q[m_idx] += lr_q * (error * p_temp - reg * q_temp)
 
 
 class ContentModel:
@@ -282,17 +274,25 @@ class HybridRecommender:
         u_text_vector = np.zeros((1, n_features))
         has_text_profile = False
         
-        # Aggregate historical high ratings
+        # Aggregate historical high ratings with exponential time decay (6 hours halflife)
         if user_key is not None:
+            import time
             user_ratings = ratings_df[ratings_df['userId'] == user_key]
-            for _, r_row in user_ratings.iterrows():
-                mid = r_row['movieId']
-                if mid in self.content_model.movie_id_to_idx:
-                    m_idx = self.content_model.movie_id_to_idx[mid]
-                    weight = r_row['rating'] - 3.0
-                    if weight > 0:
-                        u_text_vector += weight * self.content_model.tfidf_matrix[m_idx].toarray()
-                        has_text_profile = True
+            if not user_ratings.empty:
+                max_time = user_ratings['timestamp'].max() if 'timestamp' in user_ratings.columns else time.time()
+                for _, r_row in user_ratings.iterrows():
+                    mid = r_row['movieId']
+                    if mid in self.content_model.movie_id_to_idx:
+                        m_idx = self.content_model.movie_id_to_idx[mid]
+                        weight = r_row['rating'] - 3.0
+                        if weight > 0:
+                            ts = r_row.get('timestamp', max_time)
+                            age = max_time - ts
+                            time_weight = np.exp(-age / 21600.0)  # 6 hours halflife
+                            time_weight = max(time_weight, 0.1)  # keep older preferences at min 10% weight
+                            
+                            u_text_vector += weight * time_weight * self.content_model.tfidf_matrix[m_idx].toarray()
+                            has_text_profile = True
                         
         # Aggregate live session ratings
         for mid, rating in session_ratings.items():
@@ -300,7 +300,7 @@ class HybridRecommender:
                 m_idx = self.content_model.movie_id_to_idx[mid]
                 weight = rating - 3.0
                 if weight > 0:
-                    u_text_vector += weight * self.content_model.tfidf_matrix[m_idx].toarray()
+                    u_text_vector += weight * 1.0 * self.content_model.tfidf_matrix[m_idx].toarray()
                     has_text_profile = True
                     
         # 2. Score Candidates

@@ -13,6 +13,8 @@ from backend.app.schemas import OnboardingRequest, RatingCreate
 from backend.app.dependencies import get_current_user_optional
 from backend.app.cache import invalidate_all_caches
 
+from backend.app.tmdb import enrich_movie_poster
+
 router = APIRouter(prefix="", tags=["Recommendations"])
 
 
@@ -59,9 +61,13 @@ def user_onboarding(request: Request, req: OnboardingRequest, db: Session = Depe
     # Invalidate cache since database ratings count and metrics changed
     invalidate_all_caches()
 
+    matched_records = active_movies[active_movies["movieId"].isin(top_movie_ids)].to_dict(orient="records")
+    for r in matched_records:
+        enrich_movie_poster(r, db)
+
     return {
         "userId": effective_user_id,
-        "matched_movies": active_movies[active_movies["movieId"].isin(top_movie_ids)].to_dict(orient="records"),
+        "matched_movies": matched_records,
     }
 
 
@@ -74,6 +80,7 @@ def get_recommendations(
     diversity_weight: float = 0.2,
     top_n: int = 10,
     current_user: Optional[str] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
 ):
     """Fetch hybrid SVD + TF-IDF personalized recommendations with XAI explanations."""
     from backend.app.main import app
@@ -102,6 +109,7 @@ def get_recommendations(
             movie_id=r["movieId"],
             ratings_df=app.state.ratings_df,
         )
+        enrich_movie_poster(r, db)
     return records
 
 

@@ -60,9 +60,36 @@ export default function MovieShelf({ title, movies, onRate, onDelete, sessionRat
                 className="glass-card movie-card"
                 style={{
                   background: bgGrad,
-                  border: isLiked ? '1px solid var(--accent-emerald)' : isDisliked ? '1px solid var(--accent-rose)' : '1px solid var(--border-color)'
+                  border: isLiked ? '1px solid var(--accent-emerald)' : isDisliked ? '1px solid var(--accent-rose)' : '1px solid var(--border-color)',
+                  paddingTop: movie.poster_url ? '12px' : '18px'
                 }}
               >
+                {/* Poster Media */}
+                {movie.poster_url ? (
+                  <div style={{
+                    width: '100%',
+                    height: '190px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '12px',
+                    position: 'relative',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)',
+                    background: 'rgba(0, 0, 0, 0.2)'
+                  }}>
+                    <img
+                      src={movie.poster_url}
+                      alt={movie.title}
+                      className="movie-poster-img"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }}
+                    />
+                  </div>
+                ) : null}
+
                 {/* Header info */}
                 <div className="movie-card-header">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

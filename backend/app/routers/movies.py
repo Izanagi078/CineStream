@@ -10,12 +10,14 @@ from backend.app.schemas import MovieCreate
 from backend.app.dependencies import get_current_user_optional
 from backend.app.cache import cache_dec, invalidate_all_caches
 
+from backend.app.tmdb import enrich_movie_poster
+
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
 
 @router.get("/popular")
 @cache_dec("popular_movies", maxsize=64, ttl=300)
-def get_popular_movies(request: Request, limit: int = 10, page: int = 1):
+def get_popular_movies(request: Request, limit: int = 10, page: int = 1, db: Session = Depends(get_db)):
     """Returns globally popular movies ranked by rating count.
 
     Args:
@@ -33,17 +35,20 @@ def get_popular_movies(request: Request, limit: int = 10, page: int = 1):
 
     total = len(popular)
     page_slice = popular.iloc[offset: offset + limit]
+    records = page_slice.to_dict(orient="records")
+    for r in records:
+        enrich_movie_poster(r, db)
 
     return {
         "page": page,
         "limit": limit,
         "total": total,
-        "results": page_slice.to_dict(orient="records"),
+        "results": records,
     }
 
 
 @router.get("/search")
-def search_movies(request: Request, query: str, limit: int = 10):
+def search_movies(request: Request, query: str, limit: int = 10, db: Session = Depends(get_db)):
     """Searches active movies by title substring."""
     if not query:
         return []
@@ -51,7 +56,10 @@ def search_movies(request: Request, query: str, limit: int = 10):
     from backend.app.main import app
     active = app.state.movies_df[app.state.movies_df["is_active"] == True]
     matches = active[active["title"].str.contains(query, case=False, na=False)].head(limit)
-    return matches.to_dict(orient="records")
+    records = matches.to_dict(orient="records")
+    for r in records:
+        enrich_movie_poster(r, db)
+    return records
 
 
 @router.post("")

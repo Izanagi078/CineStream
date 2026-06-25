@@ -47,8 +47,7 @@ const useAppStore = create((set, get) => ({
   setLogin(username, token) {
     localStorage.setItem('userId', username);
     localStorage.setItem('token', token);
-    localStorage.setItem('hasOnboarded', 'true');
-    set({ userId: username, token, hasOnboarded: true, sessionRatings: {} });
+    set({ userId: username, token, sessionRatings: {} });
   },
 
   resetSession() {
@@ -162,7 +161,9 @@ const useAppStore = create((set, get) => ({
   async loadUserRatings(userId) {
     try {
       const data = await api.getUserRatings(userId);
-      set({ sessionRatings: data });
+      const hasRatings = Object.keys(data).length > 0;
+      localStorage.setItem('hasOnboarded', hasRatings ? 'true' : 'false');
+      set({ sessionRatings: data, hasOnboarded: hasRatings });
     } catch (e) {
       console.error('Failed to load user ratings', e);
     }

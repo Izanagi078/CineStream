@@ -16,6 +16,7 @@ class DBMovie(Base):
     genres = Column(String, nullable=False)
     metadata_text = Column(String, nullable=True)
     tmdbId = Column(Integer, nullable=True)
+    poster_path = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
 
 class DBRating(Base):
