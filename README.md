@@ -1,6 +1,12 @@
-# 🎬 Production-Grade Hybrid Movie Recommender System
+# 🎬 CineStream AI — Hybrid Movie Recommender System
 
 An advanced, enterprise-grade **Decoupled Machine Learning Recommendation System** combining Collaborative Filtering (Online SVD Matrix Factorization) and Content-Based NLP Filtering (TF-IDF + Cosine Similarity) using the MovieLens-Latest-Small dataset (100,000 ratings).
+
+---
+
+## 🌐 Live Deployments
+*   **Web Application (Frontend)**: [https://machine-learning-recommendation-sys.vercel.app](https://machine-learning-recommendation-sys.vercel.app)
+*   **API Service (Backend)**: [https://cinestream-backend-3gh8.onrender.com](https://cinestream-backend-3gh8.onrender.com)
 
 ---
 
