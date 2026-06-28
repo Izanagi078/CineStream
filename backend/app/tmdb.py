@@ -40,6 +40,12 @@ def enrich_movie_poster(movie_dict: dict, db: Session) -> dict:
     """
     from backend.app.main import app
 
+    # Sanitize float NaN values to prevent JSON serialization errors
+    if "poster_path" in movie_dict and isinstance(movie_dict["poster_path"], float) and math.isnan(movie_dict["poster_path"]):
+        movie_dict["poster_path"] = None
+    if "tmdbId" in movie_dict and isinstance(movie_dict["tmdbId"], float) and math.isnan(movie_dict["tmdbId"]):
+        movie_dict["tmdbId"] = None
+
     tmdb_id = movie_dict.get("tmdbId")
     movie_id = movie_dict.get("movieId")
     poster_path = movie_dict.get("poster_path")
